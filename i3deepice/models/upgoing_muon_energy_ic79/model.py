@@ -4,6 +4,11 @@ second part: model definition, name must be def model(input_shape):
 '''
 
 import numpy as np
+import tensorflow.keras as keras
+import tensorflow.keras.layers
+from tensorflow.keras import backend as K
+from tensorflow.keras import regularizers
+from tensorflow.keras.utils import to_categorical
 import sys
 from collections import OrderedDict
 import os
@@ -11,25 +16,9 @@ this_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(this_path)
 sys.path.append(os.path.join(this_path, ".."))
 sys.path.append(os.path.join(this_path, '..', 'lib'))
-try:
-    import keras
-    import keras.layers
-    from keras import backend as K
-    from keras import regularizers
-    from keras.utils import to_categorical
-    import keras.layers
-    import block_units as bunit
-except:
-    import tensorflow.keras as keras
-    import tensorflow.keras.layers
-    from tensorflow.keras import backend as K
-    from tensorflow.keras import regularizers
-    from tensorflow.keras.utils import to_categorical
-    import block_units_tf as bunit
-
 import transformations as tr
 import numpy as np
-    
+import block_units_tf as bunit
 
 
 
@@ -84,11 +73,11 @@ def inception_block4(input_tensor, n, t0=2, t1=4, t2=5, n_pool=3, scale=0.1):
 
     tower_4 = bunit.conv3d_bn(input_tensor, n, (1,1,t2), padding='same')
 
-    tower_3 = keras.layers.MaxPooling3D((n_pool, n_pool, n_pool),
-                                        strides=(1,1,1), padding='same')(input_tensor)
+    tower_3 = tensorflow.keras.layers.MaxPooling3D((n_pool, n_pool, n_pool),
+                         	                   strides=(1,1,1), padding='same')(input_tensor)
     tower_3 = bunit.conv3d_bn(tower_3, n, (1,1,1), padding='same')
 
-    up = keras.layers.concatenate(
+    up = tensorflow.keras.layers.concatenate(
         [tower_0, tower_1, tower_3, tower_4], axis = channel_axis)
     return up
 
@@ -107,14 +96,14 @@ def inception_resnet(input_tensor, n, t1=2, t2=3, n_pool=3, scale=0.1):
     tower_2 = bunit.conv3d_bn(tower_2, n, (1,t2,1), padding='same')
     tower_2 = bunit.conv3d_bn(tower_2, n, (1,1,t2), padding='same')
 
-    tower_3 = keras.layers.MaxPooling3D((n_pool, n_pool, n_pool),
+    tower_3 = tensorflow.keras.layers.MaxPooling3D((n_pool, n_pool, n_pool),
                                         strides=(1,1,1), padding='same')(input_tensor)
     tower_3 = bunit.conv3d_bn(tower_3, n, (1,1,1), padding='same')
 
-    up = keras.layers.concatenate(
+    up = tensorflow.keras.layers.concatenate(
         [tower_1, tower_2, tower_3], axis = channel_axis)
 
-    x = keras.layers.Lambda(lambda inputs, scale: inputs[0] + inputs[1] * scale,
+    x = tensorflow.keras.layers.Lambda(lambda inputs, scale: inputs[0] + inputs[1] * scale,
                output_shape=K.int_shape(input_tensor)[1:],
                arguments={'scale': scale},)([input_tensor, up])
 
@@ -125,7 +114,7 @@ def model(input_shapes, output_shapes):
     # https://keras.io/getting-started/functional-api-guide/
 
     # The Input
-    input_b1 = keras.layers.Input(
+    input_b1 = tensorflow.keras.layers.Input(
         shape=input_shapes['Branch_IC_time']['general'],
         name = "Input-Branch1")
         
@@ -137,29 +126,29 @@ def model(input_shapes, output_shapes):
     z1 = inception_block4(z1, 18, t0=2, t1=4, t2=8)
     z1 = inception_block4(z1, 18, t0=3, t1=5, t2=9)
     z1 = inception_block4(z1, 18, t0=3, t1=8, t2=9)
-    z1 = keras.layers.AveragePooling3D(pool_size=(2, 2, 3))(z1)
-    z1 = keras.layers.BatchNormalization()(z1)
+    z1 = tensorflow.keras.layers.AveragePooling3D(pool_size=(2, 2, 3))(z1)
+    z1 = tensorflow.keras.layers.BatchNormalization()(z1)
     for i in range(6):
         z1 = inception_resnet(z1, 24, t2=3)
         z1 = inception_resnet(z1, 24, t2=4)
         z1 = inception_resnet(z1, 24, t2=5)
-    z1 = keras.layers.AveragePooling3D(pool_size=(1, 1, 2))(z1)
-    z1 = keras.layers.BatchNormalization()(z1)
+    z1 = tensorflow.keras.layers.AveragePooling3D(pool_size=(1, 1, 2))(z1)
+    z1 = tensorflow.keras.layers.BatchNormalization()(z1)
     for i in range(6):
         z1 = inception_resnet(z1, 24, t2=3)
         z1 = inception_resnet(z1, 24, t2=4)
         z1 = inception_resnet(z1, 24, t2=5)
-    z1 = keras.layers.Conv3D(64, (1, 1, 1), activation='relu',
+    z1 = tensorflow.keras.layers.Conv3D(64, (1, 1, 1), activation='relu',
             padding="same", name='conv1x1x1')(z1)
-    z1 = keras.layers.Conv3D(4, (1, 1, 1), activation='relu',
+    z1 = tensorflow.keras.layers.Conv3D(4, (1, 1, 1), activation='relu',
             padding="same", name='conv1x1x1_2')(z1)
-    z1 = keras.layers.AveragePooling3D(pool_size=(1, 1, 2))(z1)
-    z1 = keras.layers.Flatten(data_format=K.image_data_format())(z1)
-    z1 = keras.layers.Dense(120, name='dense1')(z1)
-    z1 = keras.layers.Dense(64, name='dense2')(z1)
-    z1 = keras.layers.Dense(16, name='dense3')(z1)
+    z1 = tensorflow.keras.layers.AveragePooling3D(pool_size=(1, 1, 2))(z1)
+    z1 = tensorflow.keras.layers.Flatten(data_format=K.image_data_format())(z1)
+    z1 = tensorflow.keras.layers.Dense(120, name='dense1')(z1)
+    z1 = tensorflow.keras.layers.Dense(64, name='dense2')(z1)
+    z1 = tensorflow.keras.layers.Dense(16, name='dense3')(z1)
     print('out shape {}'.format(output_shapes["Out1"]["general"][0]))
-    output_b1 = keras.layers.Dense(output_shapes["Out1"]["general"][0],
+    output_b1 = tensorflow.keras.layers.Dense(output_shapes["Out1"]["general"][0],
                                    activation="linear",
                                    name="Target1")(z1)    
     # The Output

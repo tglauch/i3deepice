@@ -1,8 +1,8 @@
-request_gpus = 2
-request_cpus = 2
-request_memory = 6GB
+request_gpus = 1
+request_cpus = 1
+request_memory = 8GB
 output = /data/user/$ENV(USER)/test.out
 error = /data/user/$ENV(USER)/test.err
 log = /scratch/$ENV(USER)/test.log
-Requirements = has_avx && CUDACapability
+Requirements = has_avx && CUDACapability && (Machine != "gtx-30")
 queue 1

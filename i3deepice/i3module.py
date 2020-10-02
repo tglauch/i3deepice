@@ -23,10 +23,12 @@ import tensorflow as tf
 import tensorflow.keras as keras
 from mc_truth import classify_wrapper
 import importlib
-print('Using keras version {} from {}'.format(keras.__version__,
-                                              keras.__path__))
 
-
+print('Keras version {} \n {}'.format(keras.__version__,
+                                      keras.__path__))
+print('Tensorflow version {} \n {}'.format(tf.__version__,
+                                           tf.__path__))
+print(float(tf.__version__[0]) < 2)
 from tensorflow.python.client import device_lib
 
 def get_available_gpus():
@@ -130,16 +132,22 @@ class DeepLearningModule(icetray.I3ConditionalModule):
                 trans = self.__inp_trans[key][bkey]
                 binput.append((feature, trans))
             self.__inputs.append(binput)
-
-
-        print("Pulsemap {},  Store results under {}".format(self.__pulsemap, self.__save_as))
+        print("Pulsemap {} \n  Store results under {}".format(self.__pulsemap, self.__save_as))
+        old_style = ('weights.npy' in os.listdir(
+                                os.path.join(dirname,
+                                'models/{}/'.format(self.GetParameter("model"))))) 
         if __name__ == "__main__":
             func_model_def = importlib.import_module('models.{}.model'.format(self.GetParameter("model")))
         else:
             func_model_def = importlib.import_module('i3deepice.models.{}.model'.format(self.GetParameter("model")))
         self.__output_names = func_model_def.output_names
-        self.__model = func_model_def.model(self.__inp_shapes,
-                                            self.__out_shapes)
+
+        if  (old_style): 
+            self.__model = func_model_def.model(self.__inp_shapes,
+                                                self.__out_shapes)
+        else:
+            self.__model = tf.keras.models.load_model(os.path.join(dirname,
+                                                                   'models/{}/weights.h5'.format(self.GetParameter("model"))))
         config = tf.compat.v1.ConfigProto(intra_op_parallelism_threads=self.__cpu_cores,
                                           inter_op_parallelism_threads=self.__cpu_cores,
                                           device_count={'GPU': self.__gpu_cores ,
@@ -148,9 +156,11 @@ class DeepLearningModule(icetray.I3ConditionalModule):
                                           log_device_placement=False)
         config.gpu_options.allow_growth = True
         self.sess = tf.compat.v1.Session(config=config)
-        self.graph = tf.get_default_graph()
+        self.graph = tf.compat.v1.get_default_graph()
         tf.compat.v1.keras.backend.set_session(self.sess)
-        self.__model.load_weights(os.path.join(dirname, 'models/{}/weights.npy'.format(self.GetParameter("model"))))
+        if old_style:
+            self.__model.load_weights(os.path.join(dirname, 'models/{}/weights.npy'.format(self.GetParameter("model"))))
+
         return
 
     def get_cleaned_pulses(self, frame, pulse_key, bright_dom_key='None',
