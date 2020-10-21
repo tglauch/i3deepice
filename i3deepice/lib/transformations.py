@@ -403,3 +403,18 @@ def oneHotEncode_3_evtypes_strack_length_75(x, r_vals):
                    5: cascade_db, 6: cascade_db, 7: cascade_db, 8: track, 9: cascade_db}
         return mapping[int(x)]
 
+
+def oneHotEncode_new01db(x, r_vals=None):
+    """
+    This function one hot encodes the input for the event types
+    non-starting cascade, starting  cascade, through-going track,
+    starting track, stopping track
+    """
+    cascade = [1., 0.]
+    doublebang = [0., 1.]
+    # map x to possible classes
+    mapping = {1: cascade, 5: doublebang}
+    ret = np.zeros((len(np.atleast_1d(x)), 2))
+    for i in mapping.keys():
+        ret[x == i] = mapping[i]
+    return ret

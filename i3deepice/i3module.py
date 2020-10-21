@@ -35,6 +35,8 @@ def get_available_gpus():
     local_device_protos = device_lib.list_local_devices()
     return [x.name for x in local_device_protos if x.device_type == 'GPU']
 
+ic_79_strings = [1, 7, 14, 22, 31]
+
 class DeepLearningModule(icetray.I3ConditionalModule):
     """IceTray compatible class of the  Deep Learning Classifier
     """
@@ -68,6 +70,11 @@ class DeepLearningModule(icetray.I3ConditionalModule):
                this may take a few seconds')
         self.__runinfo = np.load(os.path.join(dirname,'models/{}/run_info.npy'.format(self.GetParameter("model"))),
                                  allow_pickle=True)[()]
+        if 'ic79' in self.GetParameter("model")):
+            self.__is_ic79 = True
+            print('Using an IC79 model. This will only be applied to the IC79 strings.')
+        else:
+            self.__is_ic79 = False
         self.__grid = np.load(os.path.join(dirname, 'lib/grid.npy'),
                               allow_pickle=True)[()]
         self.__inp_shapes = self.__runinfo['inp_shapes']
@@ -230,6 +237,8 @@ class DeepLearningModule(icetray.I3ConditionalModule):
                 for omkey in pulses.keys():
                     dom = (omkey.string, omkey.om)
                     if dom not in self.__grid.keys():
+                        continue
+                    if (omkey.string in ic_79_strings) & (self.__is_ic79):
                         continue
                     gpos = self.__grid[dom]
                     charges = np.array([p.charge for p in pulses[omkey][:]
